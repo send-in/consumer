@@ -6,8 +6,8 @@ import (
 
 const (
 	QUEUE = "jobs"
-	USERNAME = "admin"
-	PASSWORD = "admin"
+	USERNAME = "guest"
+	PASSWORD = "guest"
 	HOST     = "localhost"
 	PORT     = "5672"
 	SENDMESSAGE = "message-send"

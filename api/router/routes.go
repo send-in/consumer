@@ -2,14 +2,15 @@ package router
 
 import (
 	"consumer/api/controller"
-	
+	"consumer/mq"
+
 	"net/http"
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
-func Handler() http.Handler {
+func Handler(mq *mq.MQ) http.Handler {
 	httpRouter := gin.Default()
 
 	httpRouter.Use(cors.New(
@@ -23,9 +24,11 @@ func Handler() http.Handler {
 
 	v1 := httpRouter.Group("/api/v1")
 
+	jobsController := controller.NewJobController(mq)
+
 	{
-		v1.GET("/jobs", controller.GetJobs)
-		v1.POST("/jobs", controller.PostJobs)
+		v1.GET("/jobs", jobsController.GetJobs)
+		v1.POST("/jobs", jobsController.PostJob)
 	}
 
 	return httpRouter
