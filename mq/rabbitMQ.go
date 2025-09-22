@@ -2,57 +2,93 @@ package mq
 
 import (
 	"consumer/util"
+	"encoding/json"
 	"errors"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-var Connection *amqp.Connection
-var Channel *amqp.Channel
+func CreateConnection(url string) (*MQ, error) {
 
-func CreateConnection(
-	url string,
-) (
-	*amqp.Connection,
-	*amqp.Channel,
-) {
-	// creating connection
 	connection, err := amqp.Dial(url)
-	util.FailOnError(err, "Failed to connect to RabbitMQ")
-	defer connection.Close()
+	if err != nil {
+		return nil, err
+	}
 	
-	// creating channel
 	channel, err :=  connection.Channel()
-	util.FailOnError(err, "Failed to open a channel")
-	defer channel.Close()
-
-	Connection, Channel = 
-	connection, channel
-
-	return connection, channel
-}
-
-func Send(
-
-) (
-	error,
-) {
-	if Connection == nil || Channel == nil{
-		return errors.New("No Channel Found")
+	if err != nil {
+		return nil, err
 	}
 
+	_, err = channel.QueueDeclare(
+		QUEUE,
+		true,
+		false,
+		false,
+		false,
+		nil,
+	)
+	if err != nil {
+		return nil, err
+	}
 
-
+	return &MQ{
+		connection, 
+		channel,
+	}, nil
 }
 
-func Consume(
+func (mq *MQ) Publish(message Message) error {
 
-) (
-	error,
-) {
-	if Connection == nil || Channel == nil{
-		return errors.New("No Channel Found")
+	if mq.connection == nil || mq.channel == nil{
+		return errors.New("no channel found") 
+	}
+
+	body, err := json.Marshal(message)
+	if err != nil {
+		return err
+	}
+
+	return mq.channel.Publish(
+		"", 
+		QUEUE,
+		false,
+		false,
+
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body: body,
+			Type: SENDMESSAGE,
+		},
+	)
+}
+
+func (mq *MQ) Consume() (<-chan amqp.Delivery, error) {
+
+	if mq.connection == nil || mq.channel == nil{
+		return nil, errors.New("no channel found") 
 	}
 	
+	return mq.channel.Consume(
+		QUEUE,
+		"",	
+		false,
+		false,
+		false,
+		false,
+		nil,
+	)
+}
 
+func (mq *MQ) CloseConnection(){
+
+	err := mq.channel.Close()
+	if err != nil {
+		util.FailOnError(err, "close channel:")
+	}
+
+	err = mq.connection.Close()
+	if err != nil {
+		util.FailOnError(err, "close connection:")
+	}
 }
