@@ -5,13 +5,13 @@ import (
 	"consumer/lib"
 	"consumer/mq"
 	"consumer/util"
+	
+	"os"
 	"fmt"
-
 	"log"
 	"net/http"
-	"os"
 	"time"
-
+	
 	"github.com/joho/godotenv"
 )
 
@@ -58,4 +58,18 @@ func main(){
 
 	// exiting server
 	log.Println("Server exiting")
+
+	// message := mq.Message{
+	// 	UserAgent: os.Getenv("TEST_AGENT"),
+	// 	Token: os.Getenv("TEST_TOKEN"),
+	// 	Message: "you never deserved ananya",
+	// 	Reciever: "https://www.linkedin.com/in/visshon/",
+	// }
+
+	// browser := lib.CreateBrowser(&message)
+	// defer browser.Cancel()
+
+	// browser.Send(message)
+
+	
 }
