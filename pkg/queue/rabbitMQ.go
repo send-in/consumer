@@ -1,16 +1,16 @@
 package mq
 
 import (
-	"consumer/util"
+	config "consumer/internal/config"
+	
 	"encoding/json"
 	"errors"
 
-	amqp "github.com/rabbitmq/amqp091-go"
+	"github.com/rabbitmq/amqp091-go"
 )
 
-func CreateConnection(url string) (*MQ, error) {
-
-	connection, err := amqp.Dial(url)
+func Create(cfg *config.RabbitMQConfig) (*MQ, error) {
+	connection, err := amqp091.Dial(cfg.GetRabbitMQURL())
 	if err != nil {
 		return nil, err
 	}
@@ -21,7 +21,7 @@ func CreateConnection(url string) (*MQ, error) {
 	}
 
 	_, err = channel.QueueDeclare(
-		QUEUE,
+		cfg.Queue,
 		true,
 		false,
 		false,
@@ -35,11 +35,11 @@ func CreateConnection(url string) (*MQ, error) {
 	return &MQ{
 		connection, 
 		channel,
+		cfg,
 	}, nil
 }
 
 func (mq *MQ) Publish(message Message) error {
-
 	if mq.connection == nil || mq.channel == nil{
 		return errors.New("no channel found") 
 	}
@@ -51,26 +51,25 @@ func (mq *MQ) Publish(message Message) error {
 
 	return mq.channel.Publish(
 		"", 
-		QUEUE,
+		mq.config.Queue,
 		false,
 		false,
 
-		amqp.Publishing{
+		amqp091.Publishing{
 			ContentType: "application/json",
 			Body: body,
-			Type: SENDMESSAGE,
+			Type: mq.config.Type,
 		},
 	)
 }
 
-func (mq *MQ) Consume() (<-chan amqp.Delivery, error) {
-
+func (mq *MQ) Consume() (<-chan amqp091.Delivery, error) {
 	if mq.connection == nil || mq.channel == nil{
 		return nil, errors.New("no channel found") 
 	}
 	
 	return mq.channel.Consume(
-		QUEUE,
+		mq.config.Queue,
 		"",	
 		false,
 		false,
@@ -80,15 +79,16 @@ func (mq *MQ) Consume() (<-chan amqp.Delivery, error) {
 	)
 }
 
-func (mq *MQ) CloseConnection(){
-
-	err := mq.channel.Close()
-	if err != nil {
-		util.FailOnError(err, "close channel:")
+func (mq *MQ) Close() error{
+	if  channelErr := mq.channel.Close(); 
+		channelErr != nil {
+		return channelErr
+	}
+	
+	if  connectionErr := mq.connection.Close(); 
+		connectionErr != nil {
+		return connectionErr
 	}
 
-	err = mq.connection.Close()
-	if err != nil {
-		util.FailOnError(err, "close connection:")
-	}
+	return nil
 }

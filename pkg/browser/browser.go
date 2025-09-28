@@ -1,0 +1,78 @@
+package browser
+
+import (
+	mq "consumer/pkg/queue"
+
+	"context"
+	"time"
+
+	"github.com/chromedp/chromedp"
+)
+
+func NewBrowser() *Browser {
+	opts := []chromedp.ExecAllocatorOption{
+		// chromedp.UserAgent(agent),
+		chromedp.WindowSize(1920, 1080),
+		chromedp.NoFirstRun,
+		chromedp.NoDefaultBrowserCheck,
+		chromedp.Headless,
+		chromedp.DisableGPU,
+	}
+
+	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
+	browserCtx, browserCancel := chromedp.NewContext(allocCtx)
+
+	return &Browser{
+		browserCtx,
+		browserCancel,
+		allocCancel,
+	}
+}
+
+func (browser *Browser) Send(message mq.Message) error {
+	fullMessage := message.Message + "\u2060"
+
+	return chromedp.Run(
+		browser.Context,
+		setCookie("li_at", message.Token, ".linkedin.com", "/", true, true),
+
+		chromedp.Navigate(message.Receiver),
+		chromedp.WaitVisible(
+			`a.btn-primary.btn-sm.message-cta`,
+			chromedp.ByQuery,
+		),
+		chromedp.Click(
+			`a.btn-primary.btn-sm.message-cta`,
+			chromedp.ByQuery,
+		),
+
+		chromedp.WaitVisible(
+			`textarea#messaging-reply`,
+			chromedp.ByQuery,
+		),
+		chromedp.Click(
+			`textarea#messaging-reply`,
+			chromedp.ByQuery,
+		),
+		chromedp.SendKeys(
+			`textarea#messaging-reply`,
+			fullMessage,
+			chromedp.ByQuery,
+		),
+
+		chromedp.Sleep(2*time.Second),
+		chromedp.WaitVisible(
+			`button.message-send`,
+			chromedp.ByQuery,
+		),
+		chromedp.Click(
+			`button.message-send`,
+			chromedp.ByQuery,
+		),
+	)
+}
+
+func (b *Browser) Close() {
+	b.BrowserCancel()
+	b.AllocCancel()
+}
