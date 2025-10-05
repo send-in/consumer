@@ -2,7 +2,10 @@ package browser
 
 import (
 	"context"
-	"sync"
+)
+
+const(
+	SENDURL = "https://www.linkedin.com/voyager/api/voyagerMessagingDashMessengerMessages?action=createMessage"
 )
 
 type Browser struct {
@@ -12,8 +15,7 @@ type Browser struct {
 }
 
 type BrowserPool struct {
-	Pool   chan *Browser
 	Size   int
-	closed bool
-	mu     *sync.RWMutex
+	Pool   chan *Browser
+	Active bool
 }

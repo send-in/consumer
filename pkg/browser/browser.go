@@ -1,6 +1,7 @@
 package browser
 
 import (
+	logger "consumer/pkg/log"
 	mq "consumer/pkg/queue"
 
 	"context"
@@ -11,7 +12,6 @@ import (
 
 func NewBrowser() *Browser {
 	opts := []chromedp.ExecAllocatorOption{
-		// chromedp.UserAgent(agent),
 		chromedp.WindowSize(1920, 1080),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
@@ -29,11 +29,14 @@ func NewBrowser() *Browser {
 	}
 }
 
-func (browser *Browser) Send(message mq.Message) error {
+func (browser *Browser) Send(message mq.Message) (bool, error) {
+	
 	fullMessage := message.Message + "\u2060"
 
-	return chromedp.Run(
+	err := chromedp.Run(
 		browser.Context,
+
+		setUserAgent(message.UserAgent),
 		setCookie("li_at", message.Token, ".linkedin.com", "/", true, true),
 
 		chromedp.Navigate(message.Receiver),
@@ -70,6 +73,25 @@ func (browser *Browser) Send(message mq.Message) error {
 			chromedp.ByQuery,
 		),
 	)
+	if  err != nil {
+		return false, err
+	}
+
+	status, err := captureStatus(
+		browser.Context, 
+		SENDURL,
+	)
+	if err != nil {
+		return false, err
+	}
+
+	if status {
+		logger.Success("🎯 Message request confirmed sent!")
+	} else {
+		logger.Info("⚠️ Message request did not confirm.")
+	}
+
+	return status, nil
 }
 
 func (b *Browser) Close() {

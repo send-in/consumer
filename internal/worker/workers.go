@@ -11,6 +11,9 @@ import (
 	"github.com/rabbitmq/amqp091-go"
 )
 
+	//TODO: retry logic
+	//TODO: failure log
+
 func Workers(requests <-chan amqp091.Delivery, count int, Type string) {
 	for i := 1; i <= count; i++ {
 		go func(id int) {

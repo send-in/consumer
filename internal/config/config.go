@@ -7,7 +7,7 @@ import (
 )
 
 func Load() (*Config, error) {
-	godotenv.Load(".env")
+	godotenv.Load("../../.env")
 	return &Config{
 		Server: ServerConfig{
 			Port: ":" + getEnv("PORT", "8000"),
