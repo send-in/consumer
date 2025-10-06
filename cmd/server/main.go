@@ -34,7 +34,8 @@ func main() {
 	
 	logger.Info("Starting server on port %s", cfg.Server.Port)
 	
-	worker.Workers(requests, 3, cfg.RabbitMQ.Type)
+	// worker.Workers(requests, 3, cfg.RabbitMQ.Type)
+	
 	server := http.Server{
 		Addr:         cfg.Server.Port,
 		Handler:      router.Handler(queue),

@@ -1,7 +1,6 @@
 package browser
 
 import (
-	logger "consumer/pkg/log"
 	mq "consumer/pkg/queue"
 
 	"context"
@@ -83,12 +82,6 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 	)
 	if err != nil {
 		return false, err
-	}
-
-	if status {
-		logger.Success("🎯 Message request confirmed sent!")
-	} else {
-		logger.Info("⚠️ Message request did not confirm.")
 	}
 
 	return status, nil
