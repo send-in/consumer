@@ -44,7 +44,6 @@ func (jobs *Jobs) POST(context *gin.Context){
 		return
 	}
 	
-	logger.Info("Job created successfully: %+v", message)
 	context.JSON(
 		http.StatusOK,
 		gin.H{"data": message},

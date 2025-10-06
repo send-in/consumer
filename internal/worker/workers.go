@@ -34,7 +34,8 @@ func (workers *WorkerGroup) Worker(id int) {
 			request.Nack(false, false) // dont requeue
 			continue
 		}
-
+		
+		logger.Info("worker picked up the job %d, for %s", id, message.Message)
 		workers.Do(
 			id, 
 			message, 

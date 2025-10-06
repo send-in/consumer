@@ -7,7 +7,6 @@ import (
 
 const (
 	Reset = "\033[0m"
-	Bold  = "\033[1m"
 	RedBright    = "\033[91m"
 	GreenBright  = "\033[92m"
 	YellowBright = "\033[93m"
@@ -19,29 +18,29 @@ const (
 
 func logMessage(color, label, symbol, format string, args ...any) {
 	message := fmt.Sprintf(format, args...)
-	log.Printf("%s%s %s [%s] %s%s",
-		color, symbol, label, Bold, message, Reset,
+	log.Printf("%s%s%s %s %s",
+		color, symbol, label, message, Reset,
 	)
 }
 
 func Info(format string, args ...any) {
-	logMessage(CyanBright, "INFO", "ℹ", format, args...)
+	logMessage(CyanBright, "INFO", "ℹ️", format, args...)
 }
 
 func Success(format string, args ...any) {
-	logMessage(GreenBright, "SUCCESS", "✔", format, args...)
+	logMessage(GreenBright, "SUCCESS", "✅", format, args...)
 }
 
 func Warning(format string, args ...any) {
-	logMessage(YellowBright, "WARNING", "⚠", format, args...)
+	logMessage(YellowBright, "WARNING", "⚠️", format, args...)
 }
 
 func Error(format string, args ...any) {
-	logMessage(RedBright, "ERROR", "✖", format, args...)
+	logMessage(RedBright, "ERROR", "❌", format, args...)
 }
 
 func Debug(format string, args ...any) {
-	logMessage(BlueBright, "DEBUG", "·", format, args...)
+	logMessage(BlueBright, "DEBUG", "🦶🏻", format, args...)
 }
 
 func Fatal(err error, msg string) {

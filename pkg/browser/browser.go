@@ -14,7 +14,7 @@ func NewBrowser() *Browser {
 		chromedp.WindowSize(1920, 1080),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
-		chromedp.Headless,
+		// chromedp.Headless,
 		chromedp.DisableGPU,
 	}
 
@@ -87,7 +87,21 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 	return status, nil
 }
 
+func (b *Browser) IsAlive() bool {
+	ctx := b.Context
+	if ctx == nil {
+		return false
+	}
+
+	err := chromedp.Run(
+		ctx, 
+		chromedp.Evaluate(`1`, nil),
+	)
+	return err == nil
+}
+
 func (b *Browser) Close() {
 	b.BrowserCancel()
 	b.AllocCancel()
 }
+

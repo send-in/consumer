@@ -2,10 +2,11 @@ package browser
 
 import (
 	logger "consumer/pkg/log"
+	"errors"
 	"time"
 )
 
-func CreatePool(size int) *BrowserPool {
+func CreatePool(size int) (*BrowserPool, error) {
 	pool := make(chan *Browser, size)
 	for range size {
 		pool <- NewBrowser()
@@ -17,8 +18,11 @@ func CreatePool(size int) *BrowserPool {
 		true,
 	}
 	
-	go browsers.Monitor()
-	return browsers
+	if len(browsers.Pool) != browsers.Size {
+		return nil, errors.New("browsers crashed") 
+	}
+
+	return browsers, nil
 }
 
 func (browsers *BrowserPool) Acquire() *Browser {
@@ -31,10 +35,19 @@ func (browsers *BrowserPool) Acquire() *Browser {
 }
 
 func (browsers *BrowserPool) Release(browser *Browser) {
-	select {
-	case browsers.Pool <- browser:
-	default:
-		browser.Close()
+	if browser == nil || !browser.IsAlive() {
+        browser.Close()
+        select {
+		case browsers.Pool <- NewBrowser():
+			logger.Warning("💀 Replaced crashed browser during Release()")
+		default:
+        }
+    }else {
+		select {
+		case browsers.Pool <- browser:
+		default:
+			browser.Close()
+		}
 	}
 }
 
@@ -44,27 +57,5 @@ func (browsers *BrowserPool) Close() {
 	
 	for browser := range browsers.Pool {
 		browser.Close()
-	}
-}
-
-func (browsers *BrowserPool) Monitor(){
-	ticker := time.NewTicker(2 * time.Second)
-	defer ticker.Stop()
-	
-	// TODO: cleanup logic
-
-	for browsers.Active {
-		<-ticker.C
-		
-		required := browsers.Size
-		actual := len(browsers.Pool)
-		
-		for range (required-actual){
-			select {
-			case browsers.Pool <- NewBrowser():
-				logger.Info("♻️ Browser added to pool for self-healing")
-			default:
-			}
-		}
 	}
 }
