@@ -17,5 +17,6 @@ type Browser struct {
 type BrowserPool struct {
 	Size   int
 	Pool   chan *Browser
+	Dead   chan *Browser
 	Active bool
 }

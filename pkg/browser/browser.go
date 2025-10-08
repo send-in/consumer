@@ -1,7 +1,7 @@
 package browser
 
 import (
-	mq "consumer/pkg/queue"
+	mq "consumer/internal/queue"
 
 	"context"
 	"time"
@@ -11,7 +11,7 @@ import (
 
 func NewBrowser() *Browser {
 	opts := []chromedp.ExecAllocatorOption{
-		chromedp.WindowSize(1920, 1080),
+		chromedp.WindowSize(414, 896),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
 		// chromedp.Headless,
@@ -32,8 +32,11 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 	
 	fullMessage := message.Message + "\u2060"
 
+	context, cancel := context.WithTimeout(browser.Context, 10*time.Second)
+	defer cancel()
+
 	err := chromedp.Run(
-		browser.Context,
+		context,
 
 		setUserAgent(message.UserAgent),
 		setCookie("li_at", message.Token, ".linkedin.com", "/", true, true),
@@ -72,6 +75,7 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 			chromedp.ByQuery,
 		),
 	)
+
 	if  err != nil {
 		return false, err
 	}
@@ -80,6 +84,7 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 		browser.Context, 
 		SENDURL,
 	)
+
 	if err != nil {
 		return false, err
 	}
@@ -87,17 +92,29 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 	return status, nil
 }
 
-func (b *Browser) IsAlive() bool {
-	ctx := b.Context
-	if ctx == nil {
+func (browser *Browser) IsAlive() bool {
+	context := browser.Context
+	if context == nil {
 		return false
 	}
 
 	err := chromedp.Run(
-		ctx, 
+		context, 
 		chromedp.Evaluate(`1`, nil),
 	)
 	return err == nil
+}
+
+func (browser *Browser) WarmUp() {
+	context := browser.Context
+	if context == nil {
+		return
+	}
+
+	chromedp.Run(
+		context,
+		chromedp.Navigate("about:blank"),
+	)
 }
 
 func (b *Browser) Close() {

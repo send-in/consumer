@@ -40,14 +40,8 @@ func setUserAgent(agent string) chromedp.Action {
 }
 
 func captureStatus(ctx context.Context, url string) (bool, error) {
-
 	var requestId network.RequestID
 	done := make(chan bool, 1)
-
-	err := network.Enable().Do(ctx)
-	if  err != nil {
-		return false, err
-	}
 
 	chromedp.ListenTarget(ctx, func(event interface{}) {
 		switch event := event.(type) {

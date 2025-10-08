@@ -1,12 +1,14 @@
 package main
 
 import (
-	router "consumer/internal/api/router"
+	router "consumer/api/router"
+
 	config "consumer/internal/config"
-	worker "consumer/internal/worker"
+	mq "consumer/internal/queue"
+
+	worker "consumer/pkg/worker"
 	browser "consumer/pkg/browser"
 	logger "consumer/pkg/log"
-	mq "consumer/pkg/queue"
 
 	"net/http"
 	"time"
@@ -39,14 +41,14 @@ func main() {
 	}
 
 	logger.Info("[4] Creating and filling the browser pool")
-	browsers, err := browser.CreatePool(1)
+	browsers, err := browser.CreatePool(3)
 
 	if err != nil {
 		logger.Error("Failed to start browsers %s", err)
 	}
 
 	logger.Info("[5] Creating worker threads")
-	worker.Workers(jobs, browsers, 1)
+	go worker.Factory(jobs, browsers, 3)
 
 	server := http.Server{
 		Addr:         cfg.Server.Port,
