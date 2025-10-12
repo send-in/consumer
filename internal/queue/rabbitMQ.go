@@ -2,15 +2,18 @@ package mq
 
 import (
 	config "consumer/internal/config"
-	
+
 	"encoding/json"
 	"errors"
 
-	"github.com/rabbitmq/amqp091-go"
+	"github.com/google/uuid"
+	amqp "github.com/rabbitmq/amqp091-go"
 )
 
+// TODO: add echange tags based on kuber pods
+
 func Create(cfg *config.RabbitMQConfig) (*MQ, error) {
-	connection, err := amqp091.Dial(cfg.GetRabbitMQURL())
+	connection, err := amqp.Dial(cfg.GetRabbitMQURL())
 	if err != nil {
 		return nil, err
 	}
@@ -21,12 +24,31 @@ func Create(cfg *config.RabbitMQConfig) (*MQ, error) {
 	}
 
 	_, err = channel.QueueDeclare(
+		cfg.DeadQueue,
+		true,	// durable
+		false,	// autoDeleted
+		false,	// exclusive
+		false,	// noWait
+		amqp.Table{
+			"x-dead-letter-exchange": "",
+			"x-dead-letter-routing-key": cfg.Queue,
+			"x-message-ttl": int32(5000),
+    	},
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = channel.QueueDeclare(
 		cfg.Queue,
-		true,
-		false,
-		false,
-		false,
-		nil,
+		true,	// durable
+		false,	// autoDeleted
+		false,	// exclusive
+		false,	// noWait
+		amqp.Table{
+			"x-dead-letter-exchange": "",
+			"x-dead-letter-routing-key": cfg.DeadQueue,
+		},
 	)
 	if err != nil {
 		return nil, err
@@ -50,32 +72,33 @@ func (mq *MQ) Publish(message Message) error {
 	}
 
 	return mq.channel.Publish(
-		"", 
+		"",
 		mq.config.Queue,
 		false,
 		false,
-
-		amqp091.Publishing{
+		amqp.Publishing{
+			MessageId: uuid.NewString(),
 			ContentType: "application/json",
 			Body: body,
 			Type: mq.config.Type,
+			DeliveryMode: amqp.Persistent,
 		},
 	)
 }
 
-func (mq *MQ) Consume() (<-chan amqp091.Delivery, error) {
+func (mq *MQ) Consume() (<-chan amqp.Delivery, error) {
 	if mq.connection == nil || mq.channel == nil{
 		return nil, errors.New("no channel found") 
 	}
 	
 	return mq.channel.Consume(
 		mq.config.Queue,
-		"",	
-		false,
-		false,
-		false,
-		false,
-		nil,
+		"",
+		false,	// autoAck
+		false,	// exclusive
+		false,	// noLocal
+		false,	// noWait
+		nil,	// args
 	)
 }
 

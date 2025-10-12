@@ -41,7 +41,7 @@ func (browser *Browser) SendTemp() (bool, error) {
 
 	status, err := captureStatus(
 		browser.Context,
-		requestURL,
+		"https://req.in/api/users?page=2",
 	)
 	if err != nil {
 		return false, err

@@ -7,18 +7,22 @@ import (
 )
 
 func Load() (*Config, error) {
-	godotenv.Load("../../.env")
+	godotenv.Load(".env")
 	return &Config{
 		Server: ServerConfig{
-			Port: ":" + getEnv("PORT", "8000"),
+			Port: ":" + GetEnv("PORT", "8000"),
+			Passkey: GetEnv("PASSKEY", ""),
 		},
 		RabbitMQ: RabbitMQConfig{
-			Username: getEnv("RABBITMQ_USERNAME", "guest"),
-			Password: getEnv("RABBITMQ_PASSWORD", "guest"),
-			Host: getEnv("RABBITMQ_HOST", "localhost"),
-			Port: getEnv("RABBITMQ_PORT", "5672"),
-			Queue: getEnv("RABBITMQ_QUEUE", "jobs"),
-			Type: getEnv("RABBITMQ_TYPE", "message-send"),
+			Username: GetEnv("RABBITMQ_USERNAME", "guest"),
+			Password: GetEnv("RABBITMQ_PASSWORD", "guest"),
+			Host: GetEnv("RABBITMQ_HOST", "localhost"),
+			Port: GetEnv("RABBITMQ_PORT", "5672"),
+
+			Queue: GetEnv("RABBITMQ_QUEUE", "jobs"),
+			Type: GetEnv("RABBITMQ_TYPE", "message-send"),
+			DeadQueue: GetEnv("RABBITMQ_DEAD_QUEUE", "dead-jobs"),
+
 		},
 	}, nil
 }

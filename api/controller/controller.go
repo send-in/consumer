@@ -15,13 +15,6 @@ func Create(q *mq.MQ) *Jobs {
 	}
 }
 
-func (jobs *Jobs) GET(context *gin.Context) {
-	context.JSON(
-		http.StatusOK, 
-		gin.H{"data": jobs.queue},
-	)
-}
-
 func (jobs *Jobs) POST(context *gin.Context){
 	var message mq.Message
 	queue := jobs.queue

@@ -2,7 +2,10 @@ package router
 
 import (
 	controller "consumer/api/controller"
+	// middleware "consumer/api/middleware"
+
 	mq "consumer/internal/queue"
+	config "consumer/internal/config"
 
 	"net/http"
 
@@ -10,7 +13,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func Handler(mq *mq.MQ) http.Handler {
+func Config(mq *mq.MQ, cfg *config.ServerConfig) http.Handler {
 	router := gin.Default()
 
 	router.Use(cors.New(
@@ -23,16 +26,24 @@ func Handler(mq *mq.MQ) http.Handler {
 	))
 
 	v1 := router.Group("/api/v1")
-	v1.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"status": "healthy",
-		})
-	})
 	
 	{
 		jobs := controller.Create(mq)
-		v1.GET("/jobs", jobs.GET)
-		v1.POST("/jobs", jobs.POST)
+
+		v1.GET(
+			"/health", 
+			func(c *gin.Context) {
+				c.JSON(http.StatusOK, gin.H{
+					"status": "healthy",
+				})
+			},
+		)
+		
+		v1.POST(
+			"/jobs",
+			// middleware.Authenticate(cfg.Passkey),
+			jobs.POST,
+		)
 	}
 
 	return router

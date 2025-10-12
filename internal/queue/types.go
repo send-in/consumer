@@ -3,12 +3,12 @@ package mq
 import (
 	config "consumer/internal/config"
 
-	"github.com/rabbitmq/amqp091-go"
+	ampq "github.com/rabbitmq/amqp091-go"
 )
 
 type MQ struct {
-	connection *amqp091.Connection
-	channel    *amqp091.Channel
+	connection *ampq.Connection
+	channel    *ampq.Channel
 	config     *config.RabbitMQConfig
 }
 

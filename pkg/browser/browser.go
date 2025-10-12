@@ -29,7 +29,7 @@ func NewBrowser() *Browser {
 }
 
 func (browser *Browser) Send(message mq.Message) (bool, error) {
-	
+
 	fullMessage := message.Message + "\u2060"
 
 	context, cancel := context.WithTimeout(browser.Context, 10*time.Second)
@@ -76,12 +76,12 @@ func (browser *Browser) Send(message mq.Message) (bool, error) {
 		),
 	)
 
-	if  err != nil {
+	if err != nil {
 		return false, err
 	}
 
 	status, err := captureStatus(
-		browser.Context, 
+		browser.Context,
 		SENDURL,
 	)
 
@@ -99,7 +99,7 @@ func (browser *Browser) IsAlive() bool {
 	}
 
 	err := chromedp.Run(
-		context, 
+		context,
 		chromedp.Evaluate(`1`, nil),
 	)
 	return err == nil
@@ -121,4 +121,3 @@ func (b *Browser) Close() {
 	b.BrowserCancel()
 	b.AllocCancel()
 }
-
