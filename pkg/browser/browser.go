@@ -117,7 +117,7 @@ func (browser *Browser) WarmUp() {
 	)
 }
 
-func (b *Browser) Close() {
-	b.BrowserCancel()
-	b.AllocCancel()
+func (browser *Browser) Close() {
+	browser.BrowserCancel()
+	browser.AllocCancel()
 }

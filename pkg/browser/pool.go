@@ -3,6 +3,7 @@ package browser
 import (
 	logger "consumer/pkg/log"
 	"errors"
+	"sync/atomic"
 	"time"
 )
 
@@ -15,12 +16,15 @@ func CreatePool(size int) (*BrowserPool, error) {
 		browser.WarmUp()
 		pool <- browser
 	}
+
+	active := atomic.Bool{}
+	active.Store(true)
 	
 	browsers := &BrowserPool{
 		size,
 		pool,
 		dead,
-		true,
+		&active,
 	}
 	
 	if len(browsers.Pool) != browsers.Size {
@@ -33,6 +37,10 @@ func CreatePool(size int) (*BrowserPool, error) {
 
 func (browsers *BrowserPool) Acquire() *Browser {
 	for{
+		if !browsers.Active.Load() {
+			return nil
+		}
+
 		select {
 			case browser := <-browsers.Pool:
 				if browser == nil {
@@ -84,16 +92,24 @@ func (browsers *BrowserPool) Release(browser *Browser) {
 }
 
 func (browsers *BrowserPool) Close() {
-	browsers.Active = false
-	close(browsers.Pool)
+	browsers.Active.Swap(false)
+	time.Sleep(100 * time.Millisecond)
 	
-	for browser := range browsers.Pool {
-		browser.Close()
+	for {
+		select {
+			case browser := <-browsers.Pool:
+				if browser != nil {
+					browser.Close()
+				}
+			default:
+				close(browsers.Pool)
+				return
+		}
 	}
 }
 
 func (browsers *BrowserPool) Monitor(){
-	for browsers.Active {
+	for browsers.Active.Load() {
 		select {
 			case dead := <- browsers.Dead:
 				if(dead != nil){

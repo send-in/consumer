@@ -2,6 +2,7 @@ package browser
 
 import (
 	"context"
+	"sync/atomic"
 )
 
 const(
@@ -18,5 +19,5 @@ type BrowserPool struct {
 	Size   int
 	Pool   chan *Browser
 	Dead   chan *Browser
-	Active bool
+	Active *atomic.Bool
 }
