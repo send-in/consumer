@@ -2,12 +2,14 @@ package browser
 
 import (
 	logger "consumer/pkg/log"
+
+	"context"
 	"errors"
 	"sync/atomic"
 	"time"
 )
 
-func CreatePool(size int) (*BrowserPool, error) {
+func CreatePool(size int, context context.Context) (*BrowserPool, error) {
 	pool := make(chan *Browser, size)
 	dead := make(chan *Browser, size)
 
@@ -28,14 +30,17 @@ func CreatePool(size int) (*BrowserPool, error) {
 	}
 	
 	if len(browsers.Pool) != browsers.Size {
-		return nil, errors.New("browsers crashed") 
+		return nil, errors.New("failed to initialize browser pool") 
 	}
 
-	go browsers.Monitor()
+	go browsers.Monitor(context)
 	return browsers, nil
 }
 
 func (browsers *BrowserPool) Acquire() *Browser {
+	timer := time.NewTimer(10 * time.Second)
+	defer timer.Stop()
+
 	for{
 		if !browsers.Active.Load() {
 			return nil
@@ -60,7 +65,7 @@ func (browsers *BrowserPool) Acquire() *Browser {
 
 				return browser
 
-			case <-time.After(10 * time.Second):
+			case <-timer.C:
 				return nil
 		}
 	}
@@ -108,7 +113,10 @@ func (browsers *BrowserPool) Close() {
 	}
 }
 
-func (browsers *BrowserPool) Monitor(){
+func (browsers *BrowserPool) Monitor(context context.Context){
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
 	for browsers.Active.Load() {
 		select {
 			case dead := <- browsers.Dead:
@@ -126,8 +134,9 @@ func (browsers *BrowserPool) Monitor(){
 					default:
 						browser.Close()
 				}
-			
-			case <-time.After(2 * time.Second):
+			case <-ticker.C:
+			case <-context.Done():
+				return
 		}
 	}
 }

@@ -43,7 +43,7 @@ func captureStatus(ctx context.Context, url string) (bool, error) {
 	var requestId network.RequestID
 	done := make(chan bool, 1)
 
-	chromedp.ListenTarget(ctx, func(event interface{}) {
+	chromedp.ListenTarget(ctx, func(event any) {
 		switch event := event.(type) {
 			case *network.EventRequestWillBeSent:
 				req := event.Request
@@ -81,7 +81,6 @@ func (browser *Browser) SendTemp() (bool, error) {
 
 	err := chromedp.Run(
 		ctx,
-		// chromedp.Sleep(11*time.Second),
 		chromedp.Navigate(testURL),
 		chromedp.Evaluate(`
 			(function() {
@@ -105,7 +104,7 @@ func (browser *Browser) SendTemp() (bool, error) {
 
 	status, err := captureStatus(
 		browser.Context,
-		"https://req.in/api/users?page=2",
+		requestURL,
 	)
 	if err != nil {
 		return false, err

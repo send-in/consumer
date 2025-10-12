@@ -14,7 +14,7 @@ func NewBrowser() *Browser {
 		chromedp.WindowSize(414, 896),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
-		// chromedp.Headless,
+		chromedp.Headless,
 		chromedp.DisableGPU,
 	}
 
