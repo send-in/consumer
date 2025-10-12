@@ -48,7 +48,6 @@ func captureStatus(ctx context.Context, url string) (bool, error) {
 			case *network.EventRequestWillBeSent:
 				req := event.Request
 				if strings.Contains(req.URL, url) {
-					logger.Info("Request ID: %s", event.RequestID)
 					requestId = event.RequestID
 				}
 
