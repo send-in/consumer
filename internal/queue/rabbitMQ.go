@@ -32,7 +32,7 @@ func Create(cfg *config.RabbitMQConfig) (*MQ, error) {
 		amqp.Table{
 			"x-dead-letter-exchange": "",
 			"x-dead-letter-routing-key": cfg.Queue,
-			"x-message-ttl": int32(5000),
+			"x-message-ttl": int32(1000),
     	},
 	)
 	if err != nil {

@@ -53,8 +53,8 @@ func captureStatus(ctx context.Context, url string) (bool, error) {
 
 			case *network.EventResponseReceived:
 				if event.RequestID == requestId && event.Response.Status == 200 {
-					select{
-						case done<-true:
+					select {
+						case done <- true:
 							logger.Success("✅ Request successful! ID: %s", event.RequestID)
 						default:
 					}
@@ -62,10 +62,10 @@ func captureStatus(ctx context.Context, url string) (bool, error) {
 		}
 	})
 
-	select{
+	select {
 		case <-done:
 			return true, nil
-		case <-time.After(10*time.Second):
+		case <-time.After(2*time.Second):
 			return false, context.DeadlineExceeded			
 	}
 }

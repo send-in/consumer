@@ -35,7 +35,7 @@ func main() {
 	fmt.Println(strings.Repeat("=", 60))
 
 	// Test with your current configuration
-	result := testYourExactImplementation(100, 3, 3) // 100 jobs, 3 browsers, 3 workers
+	result := testYourExactImplementation(100, 8, 8) // 100 jobs, 3 browsers, 3 workers
 	printLoadTestResult(result)
 }
 
