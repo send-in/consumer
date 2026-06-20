@@ -13,6 +13,7 @@ type Browser struct {
 	Context       context.Context
 	BrowserCancel context.CancelFunc
 	AllocCancel   context.CancelFunc
+	Port		  int
 }
 
 type BrowserPool struct {

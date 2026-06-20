@@ -2,11 +2,10 @@ package worker
 
 import (
 	mq "consumer/internal/queue"
-	"context"
-
 	browser "consumer/pkg/browser"
 	logger "consumer/pkg/log"
-
+	
+	"context"
 	"encoding/json"
 
 	amqp "github.com/rabbitmq/amqp091-go"
@@ -56,10 +55,7 @@ func Factory(
 	}
 }
 
-func Worker(
-	request amqp.Delivery, 
-	pool *browser.BrowserPool,
-) {
+func Worker(request amqp.Delivery,  pool *browser.BrowserPool) {
 	id := request.MessageId
 	logger.Info("worker picked up the job %s", id)
 
@@ -78,7 +74,9 @@ func Worker(
 		return
 	}
 
-	status, err := browser.SendTemp()
+	defer pool.Release(browser)
+	status, err := browser.Send(message)
+
 	if err != nil {
 		logger.Error("[Job %s] Failed to send message, sending to dead queue: %v ", id, err)
 		request.Nack(false, false)
@@ -90,6 +88,4 @@ func Worker(
 			"[Job %s] Message not confirmed, requeueing to main queue", id)
 		request.Nack(false, true) 
 	}
-
-	pool.Release(browser)
 }

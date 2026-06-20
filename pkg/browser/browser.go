@@ -2,20 +2,27 @@ package browser
 
 import (
 	mq "consumer/internal/queue"
+	logger "consumer/pkg/log"
 
+	"bytes"
 	"context"
+	"fmt"
+	"os/exec"
+	"strconv"
 	"time"
 
 	"github.com/chromedp/chromedp"
 )
 
-func NewBrowser() *Browser {
+func NewBrowser(port int) *Browser {
 	opts := []chromedp.ExecAllocatorOption{
-		chromedp.WindowSize(414, 896),
+		chromedp.WindowSize(1366, 768),
 		chromedp.NoFirstRun,
 		chromedp.NoDefaultBrowserCheck,
-		chromedp.Headless,
+		// chromedp.Headless,
 		chromedp.DisableGPU,
+		chromedp.Flag("remote-debugging-port", strconv.Itoa(port)),
+		chromedp.Flag("remote-debugging-address", "127.0.0.1"),
 	}
 
 	allocCtx, allocCancel := chromedp.NewExecAllocator(context.Background(), opts...)
@@ -25,71 +32,101 @@ func NewBrowser() *Browser {
 		browserCtx,
 		browserCancel,
 		allocCancel,
+		port,
 	}
 }
 
 func (browser *Browser) Send(message mq.Message) (bool, error) {
+	// fullMessage := message.Message + "\u2060"
 
-	fullMessage := message.Message + "\u2060"
-
-	context, cancel := context.WithTimeout(browser.Context, 10*time.Second)
+	setupCtx, cancel := context.WithTimeout(browser.Context, 15*time.Second)
 	defer cancel()
 
 	err := chromedp.Run(
-		context,
-
+		setupCtx,
 		setUserAgent(message.UserAgent),
-		setCookie("li_at", message.Token, ".linkedin.com", "/", true, true),
-
-		chromedp.Navigate(message.Receiver),
-		chromedp.WaitVisible(
-			`a.btn-primary.btn-sm.message-cta`,
-			chromedp.ByQuery,
-		),
-		chromedp.Click(
-			`a.btn-primary.btn-sm.message-cta`,
-			chromedp.ByQuery,
-		),
-
-		chromedp.WaitVisible(
-			`textarea#messaging-reply`,
-			chromedp.ByQuery,
-		),
-		chromedp.Click(
-			`textarea#messaging-reply`,
-			chromedp.ByQuery,
-		),
-		chromedp.SendKeys(
-			`textarea#messaging-reply`,
-			fullMessage,
-			chromedp.ByQuery,
-		),
-
-		chromedp.Sleep(2*time.Second),
-		chromedp.WaitVisible(
-			`button.message-send`,
-			chromedp.ByQuery,
-		),
-		chromedp.Click(
-			`button.message-send`,
-			chromedp.ByQuery,
-		),
+		setCookie("li_at", message.Token, ".www.linkedin.com", "/", true, true),
+		setCookie("JSESSIONID", message.JSession, ".www.linkedin.com", "/", true, true),
+		chromedp.Navigate("https://www.linkedin.com/messaging/compose/"),
+		chromedp.WaitReady("body"),
 	)
 
 	if err != nil {
 		return false, err
 	}
 
-	status, err := captureStatus(
-		browser.Context,
-		SENDURL,
+	statusCh := make(chan bool, 1)
+	errCh := make(chan error, 1)
+
+	go func() {
+		status, err := captureStatus(
+			browser.Context,
+			SENDURL,
+			30*time.Second,
+		)
+
+		if err != nil {
+			errCh <- err
+			return
+		}
+
+		statusCh <- status
+	}()
+
+	agentCtx, agentCancel := context.WithTimeout(
+		context.Background(),
+		45*time.Second,
+	)
+	defer agentCancel()
+
+	cmd := exec.CommandContext(
+		agentCtx,
+		"agent-browser",
+		"--cdp", strconv.Itoa(browser.Port),
+		"batch",
+
+		"wait --load networkidle",
+		"keyboard type "+message.Receiver,
+		"wait 1000",
+		"press Enter",
+
+		"snapshot -i",
+		// "find role textbox click",
+		// "keyboard type "+fullMessage,
+		// "keypress Meta+Enter",
 	)
 
-	if err != nil {
-		return false, err
+	var stdout bytes.Buffer
+	var stderr bytes.Buffer
+
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
+	logger.Info("Executing: %s", cmd.String())
+
+	if err := cmd.Run(); err != nil {
+		logger.Error("STDOUT:\n%s", stdout.String())
+		logger.Error("STDERR:\n%s", stderr.String())
+
+		return false, fmt.Errorf(
+			"agent-browser batch: %w\nstdout:\n%s\nstderr:\n%s",
+			err,
+			stdout.String(),
+			stderr.String(),
+		)
 	}
 
-	return status, nil
+	logger.Info("STDOUT:\n%s", stdout.String())
+	logger.Info("STDERR:\n%s", stderr.String())
+
+	select {
+	case status := <-statusCh:
+		return status, nil
+	case err := <-errCh:
+		return false, err
+	case <-time.After(30 * time.Second):
+		return false, context.DeadlineExceeded
+	}
 }
 
 func (browser *Browser) IsAlive() bool {

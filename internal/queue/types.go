@@ -14,7 +14,9 @@ type MQ struct {
 
 type Message struct {
 	UserAgent string
+	JSession  string
 	Token     string
+
 	Message   string
 	Receiver  string
 }
