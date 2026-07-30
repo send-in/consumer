@@ -2,7 +2,6 @@ package mq
 
 import (
 	config "consumer/internal/config"
-
 	ampq "github.com/rabbitmq/amqp091-go"
 )
 
@@ -13,10 +12,13 @@ type MQ struct {
 }
 
 type Message struct {
-	UserAgent string
-	JSession  string
-	Token     string
-
-	Message   string
-	Receiver  string
+	ID		   string
+	UserAgent  string
+	JSession   string
+	Token      string
+	Message    string
+	Receiver   string
+	Name       string
+	ProfileURN string
+	Recipient  string
 }

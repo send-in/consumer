@@ -10,12 +10,12 @@ func Load() (*Config, error) {
 	godotenv.Load(".env")
 	return &Config{
 		Server: ServerConfig{
-			Port: ":" + GetEnv("PORT", "8000"),
+			Port: ":" + GetEnv("PORT", "8001"),
 			Passkey: GetEnv("PASSKEY", ""),
 		},
 		RabbitMQ: RabbitMQConfig{
 			Username: GetEnv("RABBITMQ_USERNAME", "guest"),
-			Password: GetEnv("RABBITMQ_PASSWORD", "guest"),
+			Password: GetEnv("RABBITMQ_PASSWORD", "feetlover"),
 			Host: GetEnv("RABBITMQ_HOST", "localhost"),
 			Port: GetEnv("RABBITMQ_PORT", "5672"),
 

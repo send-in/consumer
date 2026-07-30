@@ -2,7 +2,6 @@ package browser
 
 import (
 	logger "consumer/pkg/log"
-	config "consumer/internal/config"
 
 	"context"
 	"errors"
@@ -10,19 +9,12 @@ import (
 	"time"
 )
 
-var PORT_COUNTER atomic.Int32
-
-func nextPort() int {
-	offset := PORT_COUNTER.Add(1) - 1
-	return config.BASE_PORT + int(offset)
-}
-
 func CreatePool(size int, context context.Context) (*BrowserPool, error) {
 	pool := make(chan *Browser, size)
 	dead := make(chan *Browser, size)
 
 	for range size {
-		browser := NewBrowser(nextPort())
+		browser := NewBrowser()
 		browser.WarmUp()
 		pool <- browser
 	}
@@ -132,7 +124,7 @@ func (browsers *BrowserPool) Monitor(context context.Context){
 					dead.Close()
 				}
 
-				browser := NewBrowser(nextPort())
+				browser := NewBrowser()
 				browser.WarmUp()
 
 				select {

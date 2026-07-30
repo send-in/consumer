@@ -80,12 +80,17 @@ func Worker(request amqp.Delivery,  pool *browser.BrowserPool) {
 	if err != nil {
 		logger.Error("[Job %s] Failed to send message, sending to dead queue: %v ", id, err)
 		request.Nack(false, false)
+	}
+
+	if err != nil {
+		logger.Error("[Job %s] Failed to send message, sending to dead queue: %v ", id, err)
+		request.Nack(false, false)
 	} else if status {
 		logger.Success("[Job %s] Message sent successfully", id)
+		
 		request.Ack(false)
 	} else {
-		logger.Info(
-			"[Job %s] Message not confirmed, requeueing to main queue", id)
+		logger.Info("[Job %s] Message not confirmed, requeueing to main queue", id)
 		request.Nack(false, true) 
 	}
 }

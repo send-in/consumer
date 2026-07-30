@@ -10,8 +10,6 @@ import (
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
-// TODO: add echange tags based on kuber pods
-
 func Create(cfg *config.RabbitMQConfig) (*MQ, error) {
 	connection, err := amqp.Dial(cfg.GetRabbitMQURL())
 	if err != nil {

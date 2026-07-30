@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/chromedp/cdproto/cdp"
-	"github.com/chromedp/cdproto/emulation"
+	"github.com/chromedp/cdproto/input"
 	"github.com/chromedp/cdproto/network"
 	"github.com/chromedp/chromedp"
 )
@@ -29,13 +29,55 @@ func setCookie(name, value, domain, path string, httpOnly, secure bool) chromedp
 	})
 }
 
-func setUserAgent(agent string) chromedp.Action {
-	return chromedp.Tasks{
-		network.Enable(),
-		chromedp.ActionFunc(func(ctx context.Context) error {
-			return emulation.SetUserAgentOverride(agent).Do(ctx)
-		}),
-	}
+func metaEnter() chromedp.Action {
+    return chromedp.ActionFunc(func(ctx context.Context) error {
+		if err := input.DispatchKeyEvent(input.KeyDown).
+			WithKey("Meta").
+			WithCode("MetaLeft").
+			WithWindowsVirtualKeyCode(91).
+			WithNativeVirtualKeyCode(91).
+			Do(ctx); 
+			err != nil {
+			return err
+		}
+
+		if err := input.DispatchKeyEvent(input.KeyDown).
+			WithKey("Enter").
+			WithCode("Enter").
+			WithWindowsVirtualKeyCode(13).
+			WithNativeVirtualKeyCode(13).
+			WithModifiers(input.ModifierMeta).
+			Do(ctx); err != nil {
+			return err
+		}
+
+		if err := input.DispatchKeyEvent(input.KeyUp).
+			WithKey("Enter").
+			WithCode("Enter").
+			WithWindowsVirtualKeyCode(13).
+			WithNativeVirtualKeyCode(13).
+			WithModifiers(input.ModifierMeta).
+			Do(ctx); err != nil {
+			return err
+		}
+
+		return input.DispatchKeyEvent(input.KeyUp).
+			WithKey("Meta").
+			WithCode("MetaLeft").
+			WithWindowsVirtualKeyCode(91).
+			WithNativeVirtualKeyCode(91).
+			Do(ctx)
+	})
+}
+
+func setCSRFToken(token string) chromedp.Action {
+	return chromedp.ActionFunc(func(ctx context.Context) error {
+		return network.SetExtraHTTPHeaders(
+			network.Headers{
+				"csrf-token": strings.Trim(token, `"`),
+			},
+		).Do(ctx)
+	})
 }
 
 func captureStatus(
@@ -48,20 +90,20 @@ func captureStatus(
  
 	chromedp.ListenTarget(ctx, func(event any) {
 		switch event := event.(type) {
-		case *network.EventRequestWillBeSent:
-			req := event.Request
-			if strings.Contains(req.URL, url) {
-				requestId = event.RequestID
-			}
- 
-		case *network.EventResponseReceived:
-			if event.RequestID == requestId && event.Response.Status == 200 {
-				select {
-				case done <- true:
-					logger.Success("✅ Request successful! ID: %s", event.RequestID)
-				default:
+			case *network.EventRequestWillBeSent:
+				req := event.Request
+				if strings.Contains(req.URL, url) {
+					requestId = event.RequestID
 				}
-			}
+	
+			case *network.EventResponseReceived:
+				if event.RequestID == requestId && event.Response.Status == 200 {
+					select {
+					case done <- true:
+						logger.Success("✅ Request successful! ID: %s", event.RequestID)
+					default:
+					}
+				}
 		}
 	})
  
